@@ -37,10 +37,11 @@ async def start(client, message):
     except Exception as e:
         print(f"❌ Exception during membership check: {e}")
         await message.reply(
-            "🚫 Kamu harus join ke channel terlebih dahulu untuk menggunakan bot ini.",
+            "Sebelum mendapatkan file,harap bergabung dengan channel dibawah ini
+            jika sudah join tekan coba lagi.",
             reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("✅ Join Channel", url=f"https://t.me/{FORCE_SUB_CHANNEL.replace('@', '')}")],
-                [InlineKeyboardButton("🔄 Cek Lagi", callback_data="refresh")]
+                [InlineKeyboardButton("Join Channel", url=f"https://t.me/{FORCE_SUB_CHANNEL.replace('@', '')}")],
+                [InlineKeyboardButton("Coba Lagi", callback_data="refresh")]
             ])
         )
         return
