@@ -1,39 +1,61 @@
-
-import os
 from pyrogram import Client, filters
+from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+import os
 
-API_ID = os.getenv("API_ID"))
+# Ambil variabel lingkungan
+API_ID_ENV = os.getenv("API_ID")
 API_HASH = os.getenv("API_HASH")
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-CHANNEL_FSUB = os.getenv("CHANNEL_FSUB")
+FORCE_SUB_CHANNEL = os.getenv("FORCE_SUB_CHANNEL")
 
-app = Client("bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
+# Validasi environment
+if not API_ID_ENV:
+    raise ValueError("❌ Environment variable API_ID tidak ditemukan.")
+if not API_HASH:
+    raise ValueError("❌ Environment variable API_HASH tidak ditemukan.")
+if not BOT_TOKEN:
+    raise ValueError("❌ Environment variable BOT_TOKEN tidak ditemukan.")
+if not FORCE_SUB_CHANNEL:
+    raise ValueError("❌ Environment variable FORCE_SUB_CHANNEL tidak ditemukan.")
 
-@app.on_message(filters.private & filters.command("start"))
+API_ID = int(API_ID_ENV)
+
+# Inisialisasi bot
+bot = Client("ForceSubBot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
+
+# Start command
+@bot.on_message(filters.private & filters.command("start"))
 async def start(client, message):
-    user = message.from_user.id
     try:
-        member = await client.get_chat_member(CHANNEL_FSUB, user)
-        if member.status in ("member", "administrator", "creator"):
-            await message.reply("Selamat datang! Silakan kirim menfess kamu:")
-        else:
-            raise Exception("Not a member")
+        user_id = message.from_user.id
+        member = await client.get_chat_member(FORCE_SUB_CHANNEL, user_id)
+        if member.status not in ("member", "creator", "administrator"):
+            raise Exception("User belum join")
     except:
-        await message.reply(f"🚫 Kamu harus join dulu ke {CHANNEL_FSUB} untuk menggunakan bot ini.")
+        await message.reply(
+            "🚫 Kamu harus join ke channel terlebih dahulu untuk menggunakan bot ini.",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("✅ Join Channel", url=f"https://t.me/{FORCE_SUB_CHANNEL.replace('@', '')}")],
+                [InlineKeyboardButton("🔄 Cek Lagi", callback_data="refresh")]
+            ])
+        )
+        return
 
-@app.on_message(filters.private & ~filters.command("start"))
-async def handle_menfess(client, message):
-    user = message.from_user.id
+    await message.reply("✅ Kamu sudah bergabung. Silakan gunakan bot seperti biasa.")
+
+# Handler tombol "Cek Lagi"
+@bot.on_callback_query(filters.regex("refresh"))
+async def refresh(client, callback_query):
     try:
-        member = await client.get_chat_member(CHANNEL_FSUB, user)
-        if member.status in ("member", "administrator", "creator"):
-            await client.send_message(CHANNEL_TARGET, f"#Menfess"
-
-"{message.text}")
-            await message.reply("✅ Menfess kamu berhasil dikirim!")
-        else:
-            raise Exception("Not a member")
+        user = callback_query.from_user.id
+        member = await client.get_chat_member(FORCE_SUB_CHANNEL, user)
+        if member.status not in ("member", "creator", "administrator"):
+            raise Exception("Belum join")
     except:
-        await message.reply(f"🚫 Kamu belum join {CHANNEL_FSUB}. Silakan join dulu.")
+        await callback_query.answer("❌ Kamu belum join!", show_alert=True)
+        return
 
-app.run()
+    await callback_query.message.edit("✅ Terima kasih sudah join. Silakan gunakan bot lagi.")
+
+# Jalankan bot
+bot.run()
