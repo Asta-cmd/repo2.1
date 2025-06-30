@@ -1,36 +1,26 @@
+# 🤖 Telegram FSUB + Menfess Bot
 
-# Telegram Bot: FSUB + Menfess
+Bot Telegram berbasis Pyrogram yang:
+- Wajib join channel (@asupanmenfesmu2)
+- Kirim menfess anonim ke channel tujuan (@tarothasupan)
+  
 
-Bot Telegram berbasis Pyrogram yang mewajibkan pengguna join channel terlebih dahulu sebelum bisa mengirim menfess ke channel tujuan.
+---
 
-## Fitur
-- ✅ Cek wajib join (force subscribe)
-- ✅ Kirim pesan menfess anonim ke channel
-- ✅ Berbasis polling (tidak perlu webhook)
+### ✅ Environment Variables:
 
-## Cara Jalankan (Lokal / Railway)
+| Key              | Value                                       |
+|------------------|---------------------------------------------|
+| `API_ID`         | 24946786                                    |
+| `API_HASH`       | a7bb54f7f9cb222294e85803b395c7fb            |
+| `BOT_TOKEN`      | 7979742075:AAF3yyPO0KBdLTSgjeG7LGJWQ859masX0Ek |
+| `CHANNEL_FSUB`   | @asupanmenfesmu2                            |
+| `CHANNEL_TARGET` | @tarothasupan                               |
 
-### 1. Clone Repo
-```bash
-git clone https://github.com/username/fsub-menfess-bot.git
-cd fsub-menfess-bot
-```
+---
 
-### 2. Install dependencies
+## 🧪 Jalankan Lokal
+
 ```bash
 pip install -r requirements.txt
-```
-
-### 3. Buat file `.env` dengan format:
-```
-API_ID=123456
-API_HASH=your_api_hash
-BOT_TOKEN=your_bot_token
-CHANNEL_FSUB=@channel_wajib_join
-CHANNEL_TARGET=@channel_menfess_tujuan
-```
-
-### 4. Jalankan bot
-```bash
 python main.py
-```
