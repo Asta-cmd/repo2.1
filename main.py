@@ -30,7 +30,7 @@ async def handle_menfess(client, message):
         if member.status in ("member", "administrator", "creator"):
             await client.send_message(CHANNEL_TARGET, f"#Menfess"
 
-{message.text}")
+"{message.text}")
             await message.reply("✅ Menfess kamu berhasil dikirim!")
         else:
             raise Exception("Not a member")
