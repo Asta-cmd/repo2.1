@@ -1,1 +1,1 @@
-worker: python main_debug_log.py
+worker: python main_with_ping.py
