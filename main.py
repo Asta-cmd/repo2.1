@@ -28,7 +28,7 @@ async def handle_menfess(client, message):
     try:
         member = await client.get_chat_member(CHANNEL_FSUB, user)
         if member.status in ("member", "administrator", "creator"):
-            await client.send_message(CHANNEL_TARGET, f"#Menfess
+            await client.send_message(CHANNEL_TARGET, f"#Menfess"
 
 {message.text}")
             await message.reply("✅ Menfess kamu berhasil dikirim!")
