@@ -1,83 +1,157 @@
+from datetime import datetime, timedelta
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 import os
+from collections import defaultdict
 
-API_ID_ENV = os.getenv("API_ID")
+API_ID = int(os.getenv("API_ID"))
 API_HASH = os.getenv("API_HASH")
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-FORCE_SUB_CHANNEL = os.getenv("FORCE_SUB_CHANNEL")
-CHANNEL_TARGET = os.getenv("CHANNEL_TARGET")
+FORCE_SUB_GROUP = "@cari_teman_virtual_online"
+CHANNEL_TARGET = os.getenv("CHANNEL_TARGET")  # contoh: @pap_cewek_cowok
+BOT_USERNAME = os.getenv("BOT_USERNAME")
+ADMIN_IDS = os.getenv("ADMIN_IDS", "")
 
-if not all([API_ID_ENV, API_HASH, BOT_TOKEN, FORCE_SUB_CHANNEL, CHANNEL_TARGET]):
-    raise ValueError("❌ Salah satu variabel lingkungan belum diset.")
+admin_ids = [int(x) for x in ADMIN_IDS.split(",") if x.strip().isdigit()]
+user_daily_limit = defaultdict(list)
+user_stats = defaultdict(int)
+media_storage = {}
 
-API_ID = int(API_ID_ENV)
-
-bot = Client("ForceSubBot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
+bot = Client("AnonMediaBot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 
 def is_valid_tag(text):
     if not text:
         return False
-    tags = ["#media", "#pap"]
-    gender = ["#cowok", "#cewek"]
-    return any(tag in text.lower() for tag in tags) and any(g in text.lower() for g in gender)
+    return all(tag in text.lower() for tag in ["#media", "#pap"]) and (
+        "#cowok" in text.lower() or "#cewek" in text.lower()
+    )
+
+def is_today(dt):
+    return dt.date() == datetime.now().date()
 
 @bot.on_message(filters.private & filters.command("start"))
 async def start(client, message):
-    try:
-        user_id = message.from_user.id
-        member = await client.get_chat_member(FORCE_SUB_CHANNEL, user_id)
-        if member.status not in ("member", "creator", "administrator"):
-            raise Exception("Belum join")
-    except:
-        await message.reply(
-            "Maaf,kamu harus join ke grup/channel dibawah ini untuk mengirim media.
-            jika kamu telah join,pencet restart.",
-            reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("Join Channel", url=f"https://t.me/{FORCE_SUB_CHANNEL.replace('@', '')}")],
-                [InlineKeyboardButton("Restart", callback_data="refresh")]
-            ])
-        )
-        return
-    await message.reply("Kamu sudah bergabung. penting di ingat bahwa Admin 100% menjaga privasi pengirim.
-    agar media dapat terkirim, kirim media dengan tag seperti: `#media #pap #cowok` atau `#media #pap #cewek`")
+    args = message.text.split(" ", 1)
+    if len(args) == 2 and args[1].startswith("media_"):
+        media_id = int(args[1].replace("media_", ""))
+        if media_id in media_storage:
+            data = media_storage[media_id]
+            if datetime.now() - data["time"] > timedelta(days=10):
+                await message.reply("⏳ Media sudah kedaluwarsa dan telah dihapus otomatis.")
+            else:
+                try:
+                    await message.reply_cached_media(data["msg_id"])
+                except:
+                    await message.reply("❌ Gagal memuat media.")
+        else:
+            await message.reply("❌ Media tidak ditemukan.")
+    else:
+        await message.reply("👋 Kirim media dengan tag:\n`#media #pap #cowok` atau `#media #pap #cewek`\nGunakan /lapor untuk menghubungi admin.")
 
 @bot.on_message(filters.private & filters.command("ping"))
 async def ping(client, message):
-    await message.reply("apakah kita saling kenal?!")
+    await message.reply("🏓 Bot aktif!")
 
-@bot.on_callback_query(filters.regex("refresh"))
-async def refresh(client, callback_query):
-    try:
-        user = callback_query.from_user.id
-        member = await client.get_chat_member(FORCE_SUB_CHANNEL, user)
-        if member.status not in ("member", "creator", "administrator"):
-            raise Exception("Belum join")
-    except:
-        await callback_query.answer("❌ Kamu belum join!", show_alert=True)
+@bot.on_message(filters.private & filters.command("stats"))
+async def stats(client, message):
+    uid = message.from_user.id
+    if uid not in admin_ids:
+        await message.reply("❌ Perintah ini hanya untuk admin.")
         return
-    await callback_query.message.edit("✅ Terima kasih sudah join. Kirim media sekarang.")
+    lines = ["📊 Statistik Pengiriman:"]
+    for user, total in user_stats.items():
+        lines.append(f"👤 User `{user}`: {total} media")
+    await message.reply("\n".join(lines))
+
+@bot.on_message(filters.private & filters.command("lapor"))
+async def report(client, message):
+    await message.reply("📩 Kirim laporanmu dalam satu pesan teks. Admin akan menerima laporanmu.")
+
+@bot.on_message(filters.private & filters.text & ~filters.command(["start", "ping", "lapor", "stats"]))
+async def handle_report(client, message):
+    uid = message.from_user.id
+    for admin in admin_ids:
+        try:
+            await client.send_message(admin, f"🚨 Laporan dari user `{uid}`:\n\n{message.text}")
+        except:
+            pass
+    await message.reply("✅ Laporan kamu telah dikirim ke admin.")
 
 @bot.on_message(filters.private & filters.media)
 async def handle_media(client, message):
-    try:
-        user_id = message.from_user.id
-        member = await client.get_chat_member(FORCE_SUB_CHANNEL, user_id)
-        if member.status not in ("member", "creator", "administrator"):
-            raise Exception("Belum join")
-    except:
-        await message.reply("🚫 Kamu belum join channel. Silakan join dulu.")
-        return
+    uid = message.from_user.id
+
+    # FSub kecuali admin
+    if uid not in admin_ids:
+        try:
+            member = await client.get_chat_member(FORCE_SUB_GROUP, uid)
+            if member.status not in ("member", "administrator", "creator"):
+                raise Exception("Belum join")
+        except:
+            await message.reply(
+                " Kamu harus join grup terlebih dahulu.",
+                reply_markup=InlineKeyboardMarkup([[
+                    InlineKeyboardButton(" Join Grup", url=f"https://t.me/{FORCE_SUB_GROUP.replace('@', '')}"),
+                    InlineKeyboardButton(" Restart, callback_data="refresh")
+                ]])
+            )
+            return
 
     if not is_valid_tag(message.caption):
-        await message.reply("⚠️ Media harus dikirim dengan tag seperti: `#media #pap #cowok` atau `#media #pap #cewek`")
+        await message.reply("⚠️ Gunakan tag: `#media #pap #cowok` atau `#media #pap #cewek`")
         return
 
+    recent = [t for t in user_daily_limit[uid] if is_today(t)]
+    if uid not in admin_ids and len(recent) >= 5:
+        await message.reply("❌ Kamu sudah mencapai batas 5 media hari ini.")
+        return
+
+    copied = await message.copy(BOT_USERNAME)
+    media_id = copied.id
+    media_storage[media_id] = {
+        "uid": uid,
+        "msg_id": copied.id,
+        "time": datetime.now(),
+        "deleted": False
+    }
+
+    link = f"https://t.me/{BOT_USERNAME}?start=media_{media_id}"
+    note = f"\n\n👁️ ID: `{uid}`" if uid in admin_ids else ""
+
+    await client.send_message(
+        CHANNEL_TARGET,
+        f"📥 Media baru diterima!\n🔗 Klik untuk lihat: {link}{note}",
+        disable_web_page_preview=True
+    )
+
+    user_daily_limit[uid].append(datetime.now())
+    user_stats[uid] += 1
+    await message.reply("✅ Media terkirim dan link dikirim ke channel.")
+
+@bot.on_callback_query(filters.regex("refresh"))
+async def refresh(client, cb):
+    uid = cb.from_user.id
+    if uid in admin_ids:
+        await cb.message.edit("✅ Kamu admin. Lanjut.")
+        return
     try:
-        await client.copy_message(CHANNEL_TARGET, from_chat_id=message.chat.id, message_id=message.id)
-        await message.reply("✅ Media berhasil dikirim ke channel.")
-    except Exception as e:
-        await message.reply(f"❌ Gagal kirim ke channel: {str(e)}")
+        member = await client.get_chat_member(FORCE_SUB_GROUP, uid)
+        if member.status in ("member", "administrator", "creator"):
+            await cb.message.edit("✅ Terima kasih sudah join!")
+        else:
+            raise Exception()
+    except:
+        await cb.answer("❌ Kamu belum join!", show_alert=True)
+
+# Fungsi penghapusan otomatis (panggil dari scheduler atau manual)
+async def auto_delete_old_media():
+    now = datetime.now()
+    for mid, data in list(media_storage.items()):
+        if not data["deleted"] and now - data["time"] > timedelta(days=10):
+            try:
+                await bot.delete_messages(BOT_USERNAME, data["msg_id"])
+                media_storage[mid]["deleted"] = True
+            except:
+                pass
 
 bot.run()
-    
