@@ -9,13 +9,14 @@ API_HASH = os.getenv("API_HASH")
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 FORCE_SUB_GROUP = "@cari_teman_virtual_online"
 CHANNEL_TARGET = os.getenv("CHANNEL_TARGET")  # contoh: @pap_cewek_cowok
-BOT_USERNAME = os.getenv("BOT_USERNAME")
+BOT_USERNAME = os.getenv("BOT_USERNAME")      # tanpa @
 ADMIN_IDS = os.getenv("ADMIN_IDS", "")
 
 admin_ids = [int(x) for x in ADMIN_IDS.split(",") if x.strip().isdigit()]
 user_daily_limit = defaultdict(list)
 user_stats = defaultdict(int)
 media_storage = {}
+lapor_aktif = set()
 
 bot = Client("AnonMediaBot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 
@@ -64,24 +65,27 @@ async def stats(client, message):
     await message.reply("\n".join(lines))
 
 @bot.on_message(filters.private & filters.command("lapor"))
-async def report(client, message):
-    await message.reply("📩 Kirim laporanmu dalam satu pesan teks. Admin akan menerima laporanmu.")
-
-@bot.on_message(filters.private & filters.text & ~filters.command(["start", "ping", "lapor", "stats"]))
-async def handle_report(client, message):
+async def start_lapor(client, message):
     uid = message.from_user.id
-    for admin in admin_ids:
-        try:
-            await client.send_message(admin, f"🚨 Laporan dari user `{uid}`:\n\n{message.text}")
-        except:
-            pass
-    await message.reply("✅ Laporan kamu telah dikirim ke admin.")
+    lapor_aktif.add(uid)
+    await message.reply("📩 Silakan ketik laporanmu sekarang. Bot akan meneruskan ke admin.")
+
+@bot.on_message(filters.private & filters.text & ~filters.command(["start", "ping", "stats"]))
+async def proses_laporan(client, message):
+    uid = message.from_user.id
+    if uid in lapor_aktif:
+        for admin in admin_ids:
+            try:
+                await client.send_message(admin, f"🚨 Laporan dari user `{uid}`:\n\n{message.text}")
+            except:
+                pass
+        await message.reply("✅ Laporan kamu telah dikirim ke admin.")
+        lapor_aktif.remove(uid)
 
 @bot.on_message(filters.private & filters.media)
 async def handle_media(client, message):
     uid = message.from_user.id
 
-    # FSub kecuali admin
     if uid not in admin_ids:
         try:
             member = await client.get_chat_member(FORCE_SUB_GROUP, uid)
@@ -143,7 +147,7 @@ async def refresh(client, cb):
     except:
         await cb.answer("❌ Kamu belum join!", show_alert=True)
 
-# Fungsi penghapusan otomatis (panggil dari scheduler atau manual)
+# Fungsi penghapusan otomatis (panggil manual/scheduler)
 async def auto_delete_old_media():
     now = datetime.now()
     for mid, data in list(media_storage.items()):
