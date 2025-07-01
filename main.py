@@ -31,18 +31,20 @@ async def start(client, message):
             raise Exception("Belum join")
     except:
         await message.reply(
-            "🚫 Kamu harus join ke channel dulu sebelum menggunakan bot ini.",
+            "Maaf,kamu harus join ke grup/channel dibawah ini untuk mengirim media.
+            jika kamu telah join,pencet restart.",
             reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("✅ Join Channel", url=f"https://t.me/{FORCE_SUB_CHANNEL.replace('@', '')}")],
-                [InlineKeyboardButton("🔄 Cek Lagi", callback_data="refresh")]
+                [InlineKeyboardButton("Join Channel", url=f"https://t.me/{FORCE_SUB_CHANNEL.replace('@', '')}")],
+                [InlineKeyboardButton("Restart", callback_data="refresh")]
             ])
         )
         return
-    await message.reply("✅ Kamu sudah bergabung. Kirim media dengan tag seperti: `#media #pap #cowok` atau `#media #pap #cewek`")
+    await message.reply("Kamu sudah bergabung. penting di ingat bahwa Admin 100% menjaga privasi pengirim.
+    agar media dapat terkirim, kirim media dengan tag seperti: `#media #pap #cowok` atau `#media #pap #cewek`")
 
 @bot.on_message(filters.private & filters.command("ping"))
 async def ping(client, message):
-    await message.reply("🏓 Bot aktif!")
+    await message.reply("apakah kita saling kenal?!")
 
 @bot.on_callback_query(filters.regex("refresh"))
 async def refresh(client, callback_query):
