@@ -91,8 +91,8 @@ async def handle_media(client, message):
             await message.reply(
                 " Kamu harus join grup terlebih dahulu.",
                 reply_markup=InlineKeyboardMarkup([[
-                    InlineKeyboardButton(" Join Grup", url=f"https://t.me/{FORCE_SUB_GROUP.replace('@', '')}"),
-                    InlineKeyboardButton(" Restart, callback_data="refresh")
+                    InlineKeyboardButton("Join Grup", url=f"https://t.me/{FORCE_SUB_GROUP.replace('@', '')}"),
+                    InlineKeyboardButton("Restart, callback_data="refresh")
                 ]])
             )
             return
