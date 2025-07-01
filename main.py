@@ -157,5 +157,12 @@ async def auto_delete_old_media():
                 media_storage[mid]["deleted"] = True
             except:
                 pass
-
+@bot.on_message(filters.private & filters.command("testchannel"))
+async def test_post(client, message):
+    try:
+        await client.send_message(CHANNEL_TARGET, "✅ Test kirim ke channel berhasil.")
+        await message.reply("✅ Bot berhasil mengirim pesan ke channel.")
+    except Exception as e:
+        await message.reply(f"❌ Gagal kirim ke channel:\n{e}")
+        
 bot.run()
