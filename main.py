@@ -89,10 +89,10 @@ async def handle_media(client, message):
                 raise Exception("Belum join")
         except:
             await message.reply(
-                " Kamu harus join grup terlebih dahulu.",
+                "🚫 Kamu harus join grup terlebih dahulu.",
                 reply_markup=InlineKeyboardMarkup([[
-                    InlineKeyboardButton("Join Grup", url=f"https://t.me/{FORCE_SUB_GROUP.replace('@', '')}"),
-                    InlineKeyboardButton("Restart, callback_data="refresh")
+                    InlineKeyboardButton("✅ Join Grup", url=f"https://t.me/{FORCE_SUB_GROUP.replace('@', '')}"),
+                    InlineKeyboardButton("🔄 Cek Lagi", callback_data="refresh")
                 ]])
             )
             return
@@ -126,7 +126,7 @@ async def handle_media(client, message):
 
     user_daily_limit[uid].append(datetime.now())
     user_stats[uid] += 1
-    await message.reply("✅ Media terkirim dan link dikirim ke channel.")
+    await message.reply("✅ Media kamu disimpan dan link dikirim ke channel.")
 
 @bot.on_callback_query(filters.regex("refresh"))
 async def refresh(client, cb):
